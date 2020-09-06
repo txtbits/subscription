@@ -1,0 +1,10 @@
+eureka:
+  instance:
+    hostname: localhost
+
+spring:
+  profiles:
+    active: dev
+
+server:
+  port: 8761

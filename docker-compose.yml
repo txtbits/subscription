@@ -1,0 +1,38 @@
+version: '3'
+services:
+    eureka:
+        image: eureka
+        environment:
+            - SERVER_PORT=8761
+        ports:
+            - 8761:8761
+        networks:
+            - mynet
+    db:
+        image: mysql:5.7
+        environment:
+            MYSQL_DATABASE: subscriptiondb
+            MYSQL_ROOT_PASSWORD: mysql
+            MYSQL_USER: user
+            MYSQL_PASSWORD: pass
+        networks:
+            - mynet
+    email:
+        image: email
+        networks:
+            - mynet
+        environment:
+            - SERVER_PORT=8887
+    subscription:
+        image: subscription
+        networks:
+            - mynet
+        ports:
+            - 8886:8886
+        environment:
+            - SERVER_PORT=8886
+            - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/subscriptiondb
+            - EUREKA_INSTANCE_HOSTNAME=eureka
+networks:
+    mynet:
+        driver: bridge

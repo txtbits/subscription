@@ -1,0 +1,14 @@
+eureka:
+  client:
+    registerWithEureka: false
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+server:
+  port: 8886
+
+spring:
+  application:
+    name: subscription
+  main:
+    allow-bean-definition-overriding: true
