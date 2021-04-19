@@ -2,9 +2,11 @@ package com.subscription.subscriptionservice.controller;
 
 import com.subscription.subscriptionservice.model.Subscription;
 import com.subscription.subscriptionservice.repository.SubscriptionRepository;
-import com.subscription.subscriptionservice.service.ClientMailService;
+import com.subscription.subscriptionservice.service.MailService;
+import com.subscription.subscriptionservice.service.SubscriptionService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,49 +18,75 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
-@Api(value="Subscription Controller", description="Operations which can be to manage Subscriptions")
+@Api(value="Private Subscription Controller", description="Operations which can be to manage Subscriptions")
 public class SubscriptionController {
 
     private final Logger log = LoggerFactory.getLogger(SubscriptionController.class);
 
     @Autowired
-    private ClientMailService clientMailService;
+    private MailService mailService;
     
+    @Autowired
+    private SubscriptionService subscriptionService;
+
     @Autowired
     private SubscriptionRepository subscriptionRepository;
 
-    public SubscriptionController(ClientMailService clientMailService) {
-        this.clientMailService = clientMailService;
+    @ApiOperation(value = "Get all subscriptions", notes = "This operation returns all the subscriptions")
+    @RequestMapping(value = "/subscription", method = RequestMethod.GET)
+    public ResponseEntity<List<Subscription>> getAllSubscriptions() {
+        try {
+            log.info("[PRIVATE] Getting all subscriptions");
+            return ResponseEntity.status(HttpStatus.OK).body(subscriptionService.getSubscriptions());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
     @ApiOperation(value="Create a new subscription", response = Subscription.class)
     @RequestMapping(value = "/subscription", method = RequestMethod.POST)
     public ResponseEntity<Object> createSubscription(@Valid @RequestBody Subscription subscription) {
-        Subscription s = subscriptionRepository.findOneByEmail(subscription.getEmail());
-        
-        if (s != null) {
-            log.error("The email account is already subscribed");
-            return new ResponseEntity<>("The email account is already subscribed", HttpStatus.CONFLICT);
-        }
-        Subscription response = subscriptionRepository.save(subscription);
-        log.info("Subscription persisted");
-        
         try {
-            String responseMailService = clientMailService.sendMail(subscription);
-            if (!responseMailService.equals("sent")) {
-                log.error("Error sending email");
-                return new ResponseEntity<>(null, HttpStatus.FORBIDDEN);
+            Subscription s = subscriptionRepository.findOneByEmail(subscription.getEmail());
+            if (s != null) {
+                log.error("The email account is already subscribed");
+                return new ResponseEntity<>("The email account is already subscribed", HttpStatus.CONFLICT);
             }
-            log.info("Mail has been sended correctly");
+            log.info("[PRIVATE] Creating new subscription");
+            Subscription subscriptionDB = subscriptionService.createSubscription(subscription);
+            log.info("[PRIVATE] Subscription persisted");
+
+            CompletableFuture.runAsync(() -> {
+                mailService.sendMail(subscriptionDB);
+            });
+            return ResponseEntity.status(HttpStatus.CREATED).body(subscriptionDB);
         } catch (Exception e) {
-            log.error("Error connecting with mail service", e);
-            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
-        
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    @ApiOperation(value = "Delete a subscription", notes = "Delete subscription by identifier")
+    @RequestMapping(value = "/subscription/{id}", method = RequestMethod.DELETE)
+    public ResponseEntity<Boolean> deleteSubscription(
+            @ApiParam(name = "id", value = "Identifier of a subscription", required = true)
+            @PathVariable("id") Long id) {
+        try {
+            Optional<Subscription> s = subscriptionRepository.findById(id);
+            if (s.isPresent()) {
+                subscriptionService.deleteSubscription(id);
+                return ResponseEntity.ok(true);
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)

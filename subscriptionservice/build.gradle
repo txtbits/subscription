@@ -2,6 +2,8 @@ plugins {
 	id 'org.springframework.boot' version '2.3.3.RELEASE'
 	id 'io.spring.dependency-management' version '1.0.10.RELEASE'
 	id 'java'
+	id 'com.palantir.docker' version '0.25.0'
+	id 'com.palantir.docker-run' version '0.25.0'
 }
 
 group = 'com.subscription'
@@ -18,14 +20,12 @@ repositories {
 	mavenCentral()
 }
 
-ext {
-	set('springCloudVersion', "Hoxton.SR8")
-}
-
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-server'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'junit:junit:4.12'
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'mysql:mysql-connector-java'
 	runtimeOnly 'org.hsqldb:hsqldb'
@@ -38,12 +38,22 @@ dependencies {
 	compile group: 'io.springfox', name: 'springfox-swagger-ui', version: '2.7.0'
 }
 
-dependencyManagement {
-	imports {
-		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
-	}
-}
-
 test {
 	useJUnitPlatform()
+}
+
+String dockerHubUsernameProperty = findProperty('dockerHubUsername') ?: 'txtbits'
+String imageName = "${dockerHubUsernameProperty}/subscription:$version"
+
+docker {
+	name imageName
+	files "build/libs/${bootJar.archiveFileName.get()}"
+	buildArgs([JAR_FILE: bootJar.archiveFileName.get()])
+}
+
+dockerRun {
+	name project.name
+	image imageName
+	ports '8886:8886'
+	clean true
 }

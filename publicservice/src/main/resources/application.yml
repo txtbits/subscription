@@ -1,0 +1,22 @@
+server:
+  port: 8885
+
+spring:
+  application:
+    name: public
+  main:
+    allow-bean-definition-overriding: true
+
+public:
+  url: http://localhost:8885
+
+private:
+  url: http://localhost:8886
+  user: admin
+  pass: adminpass
+
+mail:
+  url: http://localhost:8887
+  user: admin
+  pass: adminpass
+  attemps: 5

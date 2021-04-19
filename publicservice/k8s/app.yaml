@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: public-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: public
+  template:
+    metadata:
+      labels:
+        app: public
+    spec:
+      containers:
+        - name: public
+          image: txtbits/public:0.0.1-SNAPSHOT
+          ports:
+            - name: http
+              containerPort: 8885
+          env:
+            - name: spring.profiles.active
+              value: "pro"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: public-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: public
+  ports:
+    - name: http
+      port: 8885
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: public-ingress
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: public-service
+                port:
+                  number: 8885

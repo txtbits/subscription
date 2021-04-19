@@ -8,6 +8,8 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.SequenceGenerator;
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 import io.swagger.annotations.ApiModelProperty;
@@ -48,4 +50,15 @@ public class Subscription implements Serializable {
     @NotNull
     private Long newsLetterId;
 
+    public Subscription() { }
+
+    public Subscription(Long id, @NotNull String email, String firstName, String gender, @NotNull Date dateOfBirth, @NotNull boolean consentFlag, @NotNull Long newsLetterId) {
+        this.id = id;
+        this.email = email;
+        this.firstName = firstName;
+        this.gender = gender;
+        this.dateOfBirth = dateOfBirth;
+        this.consentFlag = consentFlag;
+        this.newsLetterId = newsLetterId;
+    }
 }

@@ -1,0 +1,23 @@
+server:
+  port: 8887
+  
+spring:
+  application:
+    name: mail
+  mail:
+    host: localhost
+    port: 1025
+
+public:
+  url: http://localhost:8885
+
+private:
+  url: http://localhost:8886
+  user: admin
+  pass: adminpass
+
+mail:
+  url: http://localhost:8887
+  user: admin
+  pass: adminpass
+  attemps: 5

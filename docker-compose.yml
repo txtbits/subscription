@@ -1,30 +1,27 @@
 version: '3'
 services:
-    eureka:
-        image: eureka
-        environment:
-            - SERVER_PORT=8761
-        ports:
-            - 8761:8761
-        networks:
-            - mynet
     db:
         image: mysql:5.7
+        container_name: db
+        networks:
+            - mynet
         environment:
             MYSQL_DATABASE: subscriptiondb
-            MYSQL_ROOT_PASSWORD: mysql
-            MYSQL_USER: user
-            MYSQL_PASSWORD: pass
+            MYSQL_ROOT_PASSWORD: root
+    mail:
+        image: txtbits/mail:0.0.1-SNAPSHOT
+        container_name: mail
         networks:
             - mynet
-    email:
-        image: email
-        networks:
-            - mynet
+        ports:
+            - 8887:8887
         environment:
+            - SPRING_MAIL_HOST=mailhog
             - SERVER_PORT=8887
+            - PRIVATE_URL=http://subscription:8886
     subscription:
-        image: subscription
+        image: txtbits/subscription:0.0.1-SNAPSHOT
+        container_name: subscription
         networks:
             - mynet
         ports:
@@ -32,7 +29,27 @@ services:
         environment:
             - SERVER_PORT=8886
             - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/subscriptiondb
-            - EUREKA_INSTANCE_HOSTNAME=eureka
+            - MAIL_URL=http://mail:8887
+        depends_on: 
+            - db
+    public:
+        image: txtbits/public:0.0.1-SNAPSHOT
+        container_name: public
+        networks:
+            - mynet
+        ports:
+            - 8885:8885
+        environment:
+            - SERVER_PORT=8885
+            - PRIVATE_URL=http://subscription:8886
+    mailhog:
+        image: mailhog/mailhog
+        container_name: mailhog
+        networks:
+            - mynet
+        ports:
+            - 1025:1025
+            - 8025:8025
 networks:
     mynet:
         driver: bridge
